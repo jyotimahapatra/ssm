@@ -270,7 +270,11 @@ func (svc *sdkService) UpdateInstanceInformation(
 	}
 
 	if h, err := platform.Hostname(log); err == nil {
-		params.ComputerName = aws.String(h)
+		pluginCapability := ""
+		if len(svc.context.AppConfig().EnablePlugins) != 0 {
+			pluginCapability = fmt.Sprintf("-%s", svc.context.AppConfig().RunScriptExecutorName)
+		}
+		params.ComputerName = aws.String(fmt.Sprintf("%s%s", h, pluginCapability))
 	} else {
 		log.Warn(err)
 	}

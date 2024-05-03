@@ -112,16 +112,31 @@ type BirdwatcherCfg struct {
 
 // SsmagentConfig stores agent configuration values.
 type SsmagentConfig struct {
-	Profile     CredentialProfile
-	Mds         MdsCfg
-	Ssm         SsmCfg
-	Mgs         MgsConfig
-	Agent       AgentInfo
-	Os          OsInfo
-	S3          S3Cfg
-	Birdwatcher BirdwatcherCfg
-	Kms         KmsConfig
-	Identity    IdentityCfg
+	Profile               CredentialProfile
+	Mds                   MdsCfg
+	Ssm                   SsmCfg
+	Mgs                   MgsConfig
+	Agent                 AgentInfo
+	Os                    OsInfo
+	S3                    S3Cfg
+	Birdwatcher           BirdwatcherCfg
+	Kms                   KmsConfig
+	Identity              IdentityCfg
+	DisableSession        bool
+	EnablePlugins         []string
+	RunScriptExecutorName string
+	EndpointTargets       []EndpointTarget
+}
+
+type EndpointTarget struct {
+	InterfaceIP              string
+	Port                     int
+	Name                     string
+	PayloadCaptureGroupRegex string
+	EndpointSelector         string
+	OutputKeySelector        string
+	ErrorKeySelector         string
+	StatusKeySelector        string
 }
 
 // AppConstants represents some run time constant variable for various module.

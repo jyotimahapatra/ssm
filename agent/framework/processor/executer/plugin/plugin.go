@@ -39,28 +39,6 @@ import (
 	"github.com/aws/amazon-ssm-agent/agent/session/plugins/standardstream"
 )
 
-// allPlugins is the list of all known plugins.
-// This allows us to differentiate between the case where a document asks for a plugin that exists but isn't supported on this platform
-// and the case where a plugin name isn't known at all to this version of the agent (and the user should probably upgrade their agent)
-var allPlugins = map[string]struct{}{
-	appconfig.PluginNameAwsAgentUpdate:         {},
-	appconfig.PluginNameAwsApplications:        {},
-	appconfig.PluginNameAwsConfigureDaemon:     {},
-	appconfig.PluginNameAwsConfigurePackage:    {},
-	appconfig.PluginNameAwsPowerShellModule:    {},
-	appconfig.PluginNameAwsRunPowerShellScript: {},
-	appconfig.PluginNameAwsRunShellScript:      {},
-	appconfig.PluginNameAwsSoftwareInventory:   {},
-	appconfig.PluginNameCloudWatch:             {},
-	appconfig.PluginNameConfigureDocker:        {},
-	appconfig.PluginNameDockerContainer:        {},
-	appconfig.PluginNameDomainJoin:             {},
-	appconfig.PluginEC2ConfigUpdate:            {},
-	appconfig.PluginNameRefreshAssociation:     {},
-	appconfig.PluginDownloadContent:            {},
-	appconfig.PluginRunDocument:                {},
-}
-
 var once sync.Once
 
 // registeredPlugins stores the registered plugins.
@@ -161,9 +139,9 @@ func RegisteredWorkerPlugins(context context.T) runpluginutil.PluginRegistry {
 }
 
 // RegisteredSessionWorkerPlugins returns all registered session plugins.
-func RegisteredSessionWorkerPlugins() runpluginutil.PluginRegistry {
+func RegisteredSessionWorkerPlugins(context context.T) runpluginutil.PluginRegistry {
 	once.Do(func() {
-		loadSessionPlugins()
+		loadSessionPlugins(context)
 	})
 	return *registeredPlugins
 }
@@ -191,20 +169,23 @@ func loadWorkers(context context.T) {
 }
 
 // loadSessionPlugins loads all session plugins
-func loadSessionPlugins() {
+func loadSessionPlugins(context context.T) {
 	var sessionPlugins = runpluginutil.PluginRegistry{}
-
-	standardStreamPluginName := appconfig.PluginNameStandardStream
-	sessionPlugins[standardStreamPluginName] = SessionPluginFactory{standardstream.NewPlugin}
-
-	interactiveCommandsPluginName := appconfig.PluginNameInteractiveCommands
-	sessionPlugins[interactiveCommandsPluginName] = SessionPluginFactory{interactivecommands.NewPlugin}
-
-	portPluginName := appconfig.PluginNamePort
-	sessionPlugins[portPluginName] = SessionPluginFactory{port.NewPlugin}
-
-	nonInteractiveCommandsPluginName := appconfig.PluginNameNonInteractiveCommands
-	sessionPlugins[nonInteractiveCommandsPluginName] = SessionPluginFactory{noninteractivecommands.NewPlugin}
+	var knownSessionPlugins = map[string]runpluginutil.PluginFactory{
+		appconfig.PluginNameStandardStream:         SessionPluginFactory{standardstream.NewPlugin},
+		appconfig.PluginNameInteractiveCommands:    SessionPluginFactory{interactivecommands.NewPlugin},
+		appconfig.PluginNamePort:                   SessionPluginFactory{port.NewPlugin},
+		appconfig.PluginNameNonInteractiveCommands: SessionPluginFactory{noninteractivecommands.NewPlugin},
+	}
+	if len(context.AppConfig().EnablePlugins) != 0 {
+		for _, enabledPlugin := range context.AppConfig().EnablePlugins {
+			if _, ok := knownPlatformDependentPlugins[enabledPlugin]; ok {
+				sessionPlugins[enabledPlugin] = knownPlatformDependentPlugins[enabledPlugin]
+			}
+		}
+	} else {
+		sessionPlugins = knownSessionPlugins
+	}
 
 	registeredPlugins = &sessionPlugins
 }
@@ -212,41 +193,26 @@ func loadSessionPlugins() {
 // loadPlatformIndependentPlugins registers plugins common to all platforms
 func loadPlatformIndependentPlugins(context context.T) runpluginutil.PluginRegistry {
 	var workerPlugins = runpluginutil.PluginRegistry{}
-
-	inventoryPluginName := inventory.Name()
-	workerPlugins[inventoryPluginName] = InventoryGathererFactory{}
-
-	// registering aws:runPowerShellScript plugin
-	workerPlugins[appconfig.PluginNameAwsRunPowerShellScript] = RunPowerShellFactory{}
-
-	// registering aws:updateSsmAgent plugin
-	updateAgentPluginName := updatessmagent.Name()
-	workerPlugins[updateAgentPluginName] = UpdateAgentFactory{}
-
-	// registering aws:configureContainers plugin
-	configureContainersPluginName := configurecontainers.Name()
-
-	workerPlugins[configureContainersPluginName] = ConfigureContainerFactory{}
-
-	// registering aws:runDockerAction plugin
-	runDockerPluginName := dockercontainer.Name()
-	workerPlugins[runDockerPluginName] = RunDockerFactory{}
-
-	// registering aws:refreshAssociation plugin
-	refreshAssociationPluginName := refreshassociation.Name()
-	workerPlugins[refreshAssociationPluginName] = RefreshAssociationFactory{}
-
-	// registering aws:configurePackage
-	configurePackagePluginName := configurepackage.Name()
-	workerPlugins[configurePackagePluginName] = ConfigurePackageFactory{}
-
-	//registering aws:downloadContent
-	downloadContentPluginName := downloadcontent.Name()
-	workerPlugins[downloadContentPluginName] = DownloadContentFactory{}
-
-	//registering aws:runDocument
-	runDocumentPluginName := rundocument.Name()
-	workerPlugins[runDocumentPluginName] = RunDocumentFactory{}
+	var knownPlatformDependentPlugins = map[string]runpluginutil.PluginFactory{
+		inventory.Name(): InventoryGathererFactory{},
+		appconfig.PluginNameAwsRunPowerShellScript: RunPowerShellFactory{},
+		updatessmagent.Name():                      UpdateAgentFactory{},
+		configurecontainers.Name():                 ConfigureContainerFactory{},
+		dockercontainer.Name():                     RunDockerFactory{},
+		refreshassociation.Name():                  RefreshAssociationFactory{},
+		configurepackage.Name():                    ConfigurePackageFactory{},
+		downloadcontent.Name():                     DownloadContentFactory{},
+		rundocument.Name():                         RunDocumentFactory{},
+	}
+	if len(context.AppConfig().EnablePlugins) != 0 {
+		for _, enabledPlugin := range context.AppConfig().EnablePlugins {
+			if _, ok := knownPlatformDependentPlugins[enabledPlugin]; ok {
+				workerPlugins[enabledPlugin] = knownPlatformDependentPlugins[enabledPlugin]
+			}
+		}
+	} else {
+		workerPlugins = knownPlatformDependentPlugins
+	}
 
 	return workerPlugins
 }

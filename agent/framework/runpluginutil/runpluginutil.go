@@ -184,7 +184,7 @@ func RunPlugins(
 		)
 
 		pluginFactory, pluginHandlerFound = registry[pluginName]
-		isKnown, isSupported, _ = isSupportedPlugin(log, pluginName)
+		isKnown, isSupported, _ = isSupportedPlugin(context, log, pluginName)
 		// checking if a prior step returned exit codes 168 or 169 to exit document.
 		// If so we need to skip every other step
 		shouldSkipStepDueToPriorFailedStep := getShouldPluginSkipBasedOnControlFlow(

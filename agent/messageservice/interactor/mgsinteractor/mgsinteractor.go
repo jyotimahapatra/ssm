@@ -336,7 +336,11 @@ func (mgs *MGSInteractor) listenIncomingAgentMessages() {
 		case mgsContracts.AgentJobMessage:
 			mgs.processAgentJobMessage(agentMessage)
 		case mgsContracts.InteractiveShellMessage, mgsContracts.ChannelClosedMessage:
-			mgs.processSessionRelatedMessages(agentMessage)
+			if mgs.context.AppConfig().DisableSession {
+				log.Infof("dropping session related message: %+v", agentMessage)
+			} else {
+				mgs.processSessionRelatedMessages(agentMessage)
+			}
 		case mgsContracts.TaskAcknowledgeMessage:
 			mgs.processTaskAcknowledgeMessage(agentMessage)
 		case mgsContracts.AgentJobReplyAck:

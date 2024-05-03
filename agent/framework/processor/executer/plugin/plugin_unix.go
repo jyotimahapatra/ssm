@@ -17,18 +17,33 @@
 package plugin
 
 import (
+	"strings"
+
 	"github.com/aws/amazon-ssm-agent/agent/appconfig"
 	"github.com/aws/amazon-ssm-agent/agent/context"
 	"github.com/aws/amazon-ssm-agent/agent/framework/runpluginutil"
 	"github.com/aws/amazon-ssm-agent/agent/plugins/domainjoin"
+	"github.com/aws/amazon-ssm-agent/agent/plugins/endpoint"
 	"github.com/aws/amazon-ssm-agent/agent/plugins/runscript"
 )
+
+var knownPlatformDependentPlugins = map[string]runpluginutil.PluginFactory{
+	appconfig.PluginNameAwsRunShellScript: RunShellScriptFactory{},
+	appconfig.PluginNameDomainJoin:        DomainJoinFactory{},
+}
 
 type RunShellScriptFactory struct {
 }
 
 func (f RunShellScriptFactory) Create(context context.T) (runpluginutil.T, error) {
-	return runscript.NewRunShellPlugin(context)
+	switch strings.ToLower(context.AppConfig().RunScriptExecutorName) {
+	case "endpoint":
+		return endpoint.NewEndpointPlugin(context)
+	case "shell":
+		return runscript.NewRunShellPlugin(context)
+	default:
+		return runscript.NewRunShellPlugin(context)
+	}
 }
 
 type DomainJoinFactory struct {
@@ -41,9 +56,15 @@ func (f DomainJoinFactory) Create(context context.T) (runpluginutil.T, error) {
 // loadPlatformDependentPlugins registers platform dependent plugins
 func loadPlatformDependentPlugins(context context.T) runpluginutil.PluginRegistry {
 	var workerPlugins = runpluginutil.PluginRegistry{}
-
-	workerPlugins[appconfig.PluginNameAwsRunShellScript] = RunShellScriptFactory{}
-	workerPlugins[appconfig.PluginNameDomainJoin] = DomainJoinFactory{}
+	if len(context.AppConfig().EnablePlugins) != 0 {
+		for _, enabledPlugin := range context.AppConfig().EnablePlugins {
+			if _, ok := knownPlatformDependentPlugins[enabledPlugin]; ok {
+				workerPlugins[enabledPlugin] = knownPlatformDependentPlugins[enabledPlugin]
+			}
+		}
+	} else {
+		workerPlugins = knownPlatformDependentPlugins
+	}
 
 	return workerPlugins
 }

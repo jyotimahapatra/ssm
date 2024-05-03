@@ -21,6 +21,7 @@ import (
 	"testing"
 
 	"github.com/aws/amazon-ssm-agent/agent/appconfig"
+	"github.com/aws/amazon-ssm-agent/agent/mocks/context"
 	"github.com/aws/amazon-ssm-agent/agent/mocks/log"
 	"github.com/stretchr/testify/assert"
 )
@@ -28,7 +29,7 @@ import (
 var mockLog = log.NewMockLog()
 
 func TestKnownSupported(t *testing.T) {
-	isKnown, isSupported, _ := IsPluginSupportedForCurrentPlatform(mockLog, appconfig.PluginNameAwsRunShellScript)
+	isKnown, isSupported, _ := IsPluginSupportedForCurrentPlatform(context.NewMockDefault(), mockLog, appconfig.PluginNameAwsRunShellScript)
 	assert.True(t, isKnown)
 	assert.True(t, isSupported)
 }
@@ -42,7 +43,7 @@ func TestKnownUnsupported(t *testing.T) {
 */
 
 func TestUnknown(t *testing.T) {
-	isKnown, isSupported, _ := IsPluginSupportedForCurrentPlatform(mockLog, "FOO")
+	isKnown, isSupported, _ := IsPluginSupportedForCurrentPlatform(context.NewMockDefault(), mockLog, "FOO")
 	assert.False(t, isKnown)
 	assert.False(t, isSupported)
 }

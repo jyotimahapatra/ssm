@@ -21,6 +21,7 @@ import (
 	"fmt"
 
 	"github.com/aws/amazon-ssm-agent/agent/appconfig"
+	"github.com/aws/amazon-ssm-agent/agent/context"
 	"github.com/aws/amazon-ssm-agent/agent/log"
 	"github.com/aws/amazon-ssm-agent/agent/platform"
 )
@@ -36,11 +37,11 @@ var supportedPlugins = map[string]struct{}{
 
 // IsPluginSupportedForCurrentPlatform always returns true for plugins that exist for linux because currently there
 // are no plugins that are supported on only one distribution or version of linux.
-func IsPluginSupportedForCurrentPlatform(log log.T, pluginName string) (isKnown bool, isSupported bool, message string) {
+func IsPluginSupportedForCurrentPlatform(context context.T, log log.T, pluginName string) (isKnown bool, isSupported bool, message string) {
 	platformName, _ := platform.PlatformName(log)
 	platformVersion, _ := platform.PlatformVersion(log)
 
-	if _, known := allSessionPlugins[pluginName]; known == true {
+	if _, known := allSessionPlugins[pluginName]; known {
 		return known, true, fmt.Sprintf("%s v%s", platformName, platformVersion)
 	}
 	_, known := allPlugins[pluginName]

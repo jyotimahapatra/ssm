@@ -107,7 +107,7 @@ func createFileChannelAndExecutePlugin(context context.T, channelName string) {
 	}
 
 	//initialize SessionPluginRegistry
-	runpluginutil.SSMPluginRegistry = plugin.RegisteredSessionWorkerPlugins()
+	runpluginutil.SSMPluginRegistry = plugin.RegisteredSessionWorkerPlugins(context)
 
 	//TODO add command timeout
 	stopTimer := make(chan bool)

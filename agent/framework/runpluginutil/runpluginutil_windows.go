@@ -26,12 +26,13 @@ import (
 	"strings"
 
 	"github.com/aws/amazon-ssm-agent/agent/appconfig"
+	"github.com/aws/amazon-ssm-agent/agent/context"
 	"github.com/aws/amazon-ssm-agent/agent/log"
 	"github.com/aws/amazon-ssm-agent/agent/platform"
 )
 
 // IsPluginSupportedForCurrentPlatform returns true if current platform supports the plugin with given name.
-func IsPluginSupportedForCurrentPlatform(log log.T, pluginName string) (isKnown bool, isSupported bool, message string) {
+func IsPluginSupportedForCurrentPlatform(context context.T, log log.T, pluginName string) (isKnown bool, isSupported bool, message string) {
 	platformName, _ := platform.PlatformName(log)
 	platformVersion, _ := platform.PlatformVersion(log)
 
