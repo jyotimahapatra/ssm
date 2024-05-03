@@ -1,4 +1,4 @@
-Latest
+3.3.0.0
 ===============
 - Fix issue to execute aws:updateSSMAgent plugin through aws:rundocument plugin
 - Update Messaging module to switch off ec2messages when ssmmessages connected successfully

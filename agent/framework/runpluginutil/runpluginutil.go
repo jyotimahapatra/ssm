@@ -62,30 +62,30 @@ var (
 // This allows us to differentiate between the case where a document asks for a plugin that exists but isn't supported on this platform
 // and the case where a plugin name isn't known at all to this version of the agent (and the user should probably upgrade their agent)
 var allPlugins = map[string]struct{}{
-	appconfig.PluginNameAwsAgentUpdate:         {},
-	appconfig.PluginNameAwsApplications:        {},
-	appconfig.PluginNameAwsConfigureDaemon:     {},
-	appconfig.PluginNameAwsConfigurePackage:    {},
-	appconfig.PluginNameAwsPowerShellModule:    {},
-	appconfig.PluginNameAwsRunPowerShellScript: {},
-	appconfig.PluginNameAwsRunShellScript:      {},
-	appconfig.PluginNameAwsSoftwareInventory:   {},
-	appconfig.PluginNameCloudWatch:             {},
-	appconfig.PluginNameConfigureDocker:        {},
-	appconfig.PluginNameDockerContainer:        {},
-	appconfig.PluginNameDomainJoin:             {},
-	appconfig.PluginEC2ConfigUpdate:            {},
-	appconfig.PluginNameRefreshAssociation:     {},
-	appconfig.PluginDownloadContent:            {},
-	appconfig.PluginRunDocument:                {},
+	//appconfig.PluginNameAwsAgentUpdate:         {},
+	//appconfig.PluginNameAwsApplications:        {},
+	//appconfig.PluginNameAwsConfigureDaemon:     {},
+	//appconfig.PluginNameAwsConfigurePackage:    {},
+	//appconfig.PluginNameAwsPowerShellModule:    {},
+	//appconfig.PluginNameAwsRunPowerShellScript: {},
+	appconfig.PluginNameAwsRunShellScript: {},
+	//appconfig.PluginNameAwsSoftwareInventory:   {},
+	//appconfig.PluginNameCloudWatch:             {},
+	//appconfig.PluginNameConfigureDocker:        {},
+	//appconfig.PluginNameDockerContainer:        {},
+	//appconfig.PluginNameDomainJoin:             {},
+	//appconfig.PluginEC2ConfigUpdate:            {},
+	//appconfig.PluginNameRefreshAssociation:     {},
+	//appconfig.PluginDownloadContent:            {},
+	//appconfig.PluginRunDocument:                {},
 }
 
 // allSessionPlugins is the list of all known session plugins.
 var allSessionPlugins = map[string]struct{}{
-	appconfig.PluginNameStandardStream:         {},
-	appconfig.PluginNameInteractiveCommands:    {},
-	appconfig.PluginNamePort:                   {},
-	appconfig.PluginNameNonInteractiveCommands: {},
+	//appconfig.PluginNameStandardStream:         {},
+	//appconfig.PluginNameInteractiveCommands:    {},
+	//appconfig.PluginNamePort:                   {},
+	//appconfig.PluginNameNonInteractiveCommands: {},
 }
 
 // Assign method to global variables to allow unittest to override

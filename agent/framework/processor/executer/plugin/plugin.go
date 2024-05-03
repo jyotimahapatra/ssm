@@ -43,22 +43,22 @@ import (
 // This allows us to differentiate between the case where a document asks for a plugin that exists but isn't supported on this platform
 // and the case where a plugin name isn't known at all to this version of the agent (and the user should probably upgrade their agent)
 var allPlugins = map[string]struct{}{
-	appconfig.PluginNameAwsAgentUpdate:         {},
-	appconfig.PluginNameAwsApplications:        {},
-	appconfig.PluginNameAwsConfigureDaemon:     {},
-	appconfig.PluginNameAwsConfigurePackage:    {},
-	appconfig.PluginNameAwsPowerShellModule:    {},
-	appconfig.PluginNameAwsRunPowerShellScript: {},
-	appconfig.PluginNameAwsRunShellScript:      {},
-	appconfig.PluginNameAwsSoftwareInventory:   {},
-	appconfig.PluginNameCloudWatch:             {},
-	appconfig.PluginNameConfigureDocker:        {},
-	appconfig.PluginNameDockerContainer:        {},
-	appconfig.PluginNameDomainJoin:             {},
-	appconfig.PluginEC2ConfigUpdate:            {},
-	appconfig.PluginNameRefreshAssociation:     {},
-	appconfig.PluginDownloadContent:            {},
-	appconfig.PluginRunDocument:                {},
+	//appconfig.PluginNameAwsAgentUpdate:         {},
+	//appconfig.PluginNameAwsApplications:        {},
+	//appconfig.PluginNameAwsConfigureDaemon:     {},
+	//appconfig.PluginNameAwsConfigurePackage:    {},
+	//appconfig.PluginNameAwsPowerShellModule:    {},
+	//appconfig.PluginNameAwsRunPowerShellScript: {},
+	appconfig.PluginNameAwsRunShellScript: {},
+	//appconfig.PluginNameAwsSoftwareInventory:   {},
+	//appconfig.PluginNameCloudWatch:             {},
+	//appconfig.PluginNameConfigureDocker:        {},
+	//appconfig.PluginNameDockerContainer:        {},
+	//appconfig.PluginNameDomainJoin:             {},
+	//appconfig.PluginEC2ConfigUpdate:            {},
+	//appconfig.PluginNameRefreshAssociation:     {},
+	//appconfig.PluginDownloadContent:            {},
+	//appconfig.PluginRunDocument:                {},
 }
 
 var once sync.Once
@@ -213,40 +213,40 @@ func loadSessionPlugins() {
 func loadPlatformIndependentPlugins(context context.T) runpluginutil.PluginRegistry {
 	var workerPlugins = runpluginutil.PluginRegistry{}
 
-	inventoryPluginName := inventory.Name()
-	workerPlugins[inventoryPluginName] = InventoryGathererFactory{}
+	//inventoryPluginName := inventory.Name()
+	//workerPlugins[inventoryPluginName] = InventoryGathererFactory{}
 
 	// registering aws:runPowerShellScript plugin
-	workerPlugins[appconfig.PluginNameAwsRunPowerShellScript] = RunPowerShellFactory{}
+	//workerPlugins[appconfig.PluginNameAwsRunPowerShellScript] = RunPowerShellFactory{}
 
 	// registering aws:updateSsmAgent plugin
-	updateAgentPluginName := updatessmagent.Name()
-	workerPlugins[updateAgentPluginName] = UpdateAgentFactory{}
+	//updateAgentPluginName := updatessmagent.Name()
+	//workerPlugins[updateAgentPluginName] = UpdateAgentFactory{}
 
 	// registering aws:configureContainers plugin
-	configureContainersPluginName := configurecontainers.Name()
+	//configureContainersPluginName := configurecontainers.Name()
 
-	workerPlugins[configureContainersPluginName] = ConfigureContainerFactory{}
+	//workerPlugins[configureContainersPluginName] = ConfigureContainerFactory{}
 
 	// registering aws:runDockerAction plugin
-	runDockerPluginName := dockercontainer.Name()
-	workerPlugins[runDockerPluginName] = RunDockerFactory{}
+	//runDockerPluginName := dockercontainer.Name()
+	//workerPlugins[runDockerPluginName] = RunDockerFactory{}
 
 	// registering aws:refreshAssociation plugin
-	refreshAssociationPluginName := refreshassociation.Name()
-	workerPlugins[refreshAssociationPluginName] = RefreshAssociationFactory{}
+	//refreshAssociationPluginName := refreshassociation.Name()
+	//workerPlugins[refreshAssociationPluginName] = RefreshAssociationFactory{}
 
 	// registering aws:configurePackage
-	configurePackagePluginName := configurepackage.Name()
-	workerPlugins[configurePackagePluginName] = ConfigurePackageFactory{}
+	//configurePackagePluginName := configurepackage.Name()
+	//workerPlugins[configurePackagePluginName] = ConfigurePackageFactory{}
 
 	//registering aws:downloadContent
-	downloadContentPluginName := downloadcontent.Name()
-	workerPlugins[downloadContentPluginName] = DownloadContentFactory{}
+	//downloadContentPluginName := downloadcontent.Name()
+	//workerPlugins[downloadContentPluginName] = DownloadContentFactory{}
 
 	//registering aws:runDocument
-	runDocumentPluginName := rundocument.Name()
-	workerPlugins[runDocumentPluginName] = RunDocumentFactory{}
+	//runDocumentPluginName := rundocument.Name()
+	//workerPlugins[runDocumentPluginName] = RunDocumentFactory{}
 
 	return workerPlugins
 }

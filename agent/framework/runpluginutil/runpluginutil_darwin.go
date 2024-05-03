@@ -26,12 +26,12 @@ import (
 )
 
 var supportedPlugins = map[string]struct{}{
-	appconfig.PluginNameAwsAgentUpdate:         {},
-	appconfig.PluginNameAwsRunPowerShellScript: {},
-	appconfig.PluginNameAwsRunShellScript:      {},
-	appconfig.PluginNameAwsSoftwareInventory:   {},
-	appconfig.PluginNameRefreshAssociation:     {},
-	appconfig.PluginNameAwsConfigurePackage:    {},
+	//appconfig.PluginNameAwsAgentUpdate:         {},
+	//appconfig.PluginNameAwsRunPowerShellScript: {},
+	appconfig.PluginNameAwsRunShellScript: {},
+	//appconfig.PluginNameAwsSoftwareInventory:   {},
+	//appconfig.PluginNameRefreshAssociation:     {},
+	//appconfig.PluginNameAwsConfigurePackage:    {},
 }
 
 // IsPluginSupportedForCurrentPlatform always returns true for plugins that exist for linux because currently there
