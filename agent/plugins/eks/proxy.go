@@ -1,6 +1,7 @@
 package eks
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/http"
 
@@ -51,24 +52,58 @@ func (p *runEksPlugin) Execute(config contracts.Configuration, cancelFlag task.C
 			output.MarkAsFailed(errorString)
 			return
 		}
+
+		failedCode := 0
+		failedMessage := ""
 		for _, c := range pluginInput.RunCommand {
 			log.Infof("Eks plugin command received %s", c)
+			var p Payload
+			if err := json.Unmarshal([]byte(c), &p); err != nil {
+				failedCode = 1
+				failedMessage = err.Error()
+				break
+			}
+
+			resp, err := http.Get(fmt.Sprintf("http://localhost:9000/%s", p.Command))
+			if err != nil {
+				failedCode = resp.StatusCode
+				failedMessage = err.Error()
+				log.Infof("Eks plugin query failed")
+				break
+			}
+			if resp.StatusCode > 300 {
+				failedCode = resp.StatusCode
+				body := make([]byte, 0)
+				resp.Body.Read(body)
+				failedMessage = fmt.Sprintf("command %s, failed with response: %s, %d", c, body, failedCode)
+				log.Infof("Eks plugin query failed")
+				break
+			}
+			log.Infof("Eks plugin query succeeded")
 		}
 
-		resp, err := http.Get("http://localhost:8000")
-		log.Infof("Eks plugin query succeeded")
-		if err != nil || resp.StatusCode > 300 {
-			output.SetExitCode(1)
-			output.SetStatus(pluginutil.GetStatus(1, cancelFlag))
+		if failedCode != 0 {
+			output.SetExitCode(failedCode)
+			output.SetStatus(pluginutil.GetStatus(failedCode, cancelFlag))
 			status := output.GetStatus()
 			if status != contracts.ResultStatusCancelled &&
 				status != contracts.ResultStatusTimedOut &&
 				status != contracts.ResultStatusSuccessAndReboot {
-				output.MarkAsFailed(fmt.Errorf("failed to run commands: %v", err))
+				output.MarkAsFailed(fmt.Errorf(failedMessage))
 			}
 			return
 		}
 		output.SetExitCode(0)
 		output.SetStatus(pluginutil.GetStatus(0, cancelFlag))
 	}
+}
+
+type Payload struct {
+	Command string  `json:"command,omitempty"`
+	Params  []Param `json:"params,omitempty"`
+}
+
+type Param struct {
+	Key   string `json:"key,omitempty"`
+	Value string `json:"value,omitempty"`
 }
