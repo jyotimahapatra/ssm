@@ -1,9 +1,14 @@
 package eks
 
 import (
+	"bytes"
+	ctx "context"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"net"
 	"net/http"
+	"time"
 
 	"github.com/aws/amazon-ssm-agent/agent/context"
 	"github.com/aws/amazon-ssm-agent/agent/contracts"
@@ -57,18 +62,42 @@ func (p *runEksPlugin) Execute(config contracts.Configuration, cancelFlag task.C
 		failedMessage := ""
 		for _, c := range pluginInput.RunCommand {
 			log.Infof("Eks plugin command received %s", c)
-			var p Payload
-			if err := json.Unmarshal([]byte(c), &p); err != nil {
+			str, err := base64.StdEncoding.DecodeString(c)
+			if err != nil {
+				log.Infof("Eks plugin base64 decode failed %v")
 				failedCode = 1
 				failedMessage = err.Error()
 				break
 			}
-
-			resp, err := http.Get(fmt.Sprintf("http://localhost:9000/%s", p.Command))
-			if err != nil {
-				failedCode = resp.StatusCode
+			log.Infof("Eks plugin decoded base64 %s", str)
+			var p Payload
+			if err := json.Unmarshal([]byte(str), &p); err != nil {
+				log.Infof("Eks plugin json unmarshal failed: %v", err)
+				failedCode = 1
 				failedMessage = err.Error()
-				log.Infof("Eks plugin query failed")
+				break
+			}
+			var jsonStr = fmt.Sprintf(`{"piezoDocument":"%s"}`, p.Payload)
+			fmt.Printf("Sending to %s: %s", p.Command, p.Payload)
+			t := http.DefaultTransport.(*http.Transport).Clone()
+			t.DialContext = func(ctx ctx.Context, network, addr string) (net.Conn, error) {
+				return net.Dial("tcp", "172.16.84.119:13734")
+			}
+			var httpClient = &http.Client{
+				Timeout:   time.Second * 10,
+				Transport: t,
+			}
+			fmt.Println(jsonStr)
+			resp, err := httpClient.Post("http://172.16.84.119/execute", "application/json", bytes.NewBuffer([]byte(jsonStr)))
+			if err != nil {
+				failedCode = -1
+				if resp != nil {
+					failedCode = resp.StatusCode
+					log.Infof("Eks plugin query response: %v", resp)
+				}
+
+				failedMessage = err.Error()
+				log.Infof("Eks plugin query failed: %v", err)
 				break
 			}
 			if resp.StatusCode > 300 {
@@ -99,11 +128,6 @@ func (p *runEksPlugin) Execute(config contracts.Configuration, cancelFlag task.C
 }
 
 type Payload struct {
-	Command string  `json:"command,omitempty"`
-	Params  []Param `json:"params,omitempty"`
-}
-
-type Param struct {
-	Key   string `json:"key,omitempty"`
-	Value string `json:"value,omitempty"`
+	Command string `json:"command,omitempty"`
+	Payload string `json:"payload,omitempty"`
 }

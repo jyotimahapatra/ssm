@@ -335,8 +335,8 @@ func (mgs *MGSInteractor) listenIncomingAgentMessages() {
 		switch agentMessage.MessageType {
 		case mgsContracts.AgentJobMessage:
 			mgs.processAgentJobMessage(agentMessage)
-		case mgsContracts.InteractiveShellMessage, mgsContracts.ChannelClosedMessage:
-			mgs.processSessionRelatedMessages(agentMessage)
+		//case mgsContracts.InteractiveShellMessage, mgsContracts.ChannelClosedMessage:
+		//	mgs.processSessionRelatedMessages(agentMessage)
 		case mgsContracts.TaskAcknowledgeMessage:
 			mgs.processTaskAcknowledgeMessage(agentMessage)
 		case mgsContracts.AgentJobReplyAck:

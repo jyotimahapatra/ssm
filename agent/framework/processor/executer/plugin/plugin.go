@@ -32,11 +32,7 @@ import (
 	"github.com/aws/amazon-ssm-agent/agent/plugins/rundocument"
 	"github.com/aws/amazon-ssm-agent/agent/plugins/runscript"
 	"github.com/aws/amazon-ssm-agent/agent/plugins/updatessmagent"
-	"github.com/aws/amazon-ssm-agent/agent/session/plugins/interactivecommands"
-	"github.com/aws/amazon-ssm-agent/agent/session/plugins/noninteractivecommands"
-	"github.com/aws/amazon-ssm-agent/agent/session/plugins/port"
 	"github.com/aws/amazon-ssm-agent/agent/session/plugins/sessionplugin"
-	"github.com/aws/amazon-ssm-agent/agent/session/plugins/standardstream"
 )
 
 // allPlugins is the list of all known plugins.
@@ -194,17 +190,17 @@ func loadWorkers(context context.T) {
 func loadSessionPlugins() {
 	var sessionPlugins = runpluginutil.PluginRegistry{}
 
-	standardStreamPluginName := appconfig.PluginNameStandardStream
-	sessionPlugins[standardStreamPluginName] = SessionPluginFactory{standardstream.NewPlugin}
+	//standardStreamPluginName := appconfig.PluginNameStandardStream
+	//sessionPlugins[standardStreamPluginName] = SessionPluginFactory{standardstream.NewPlugin}
 
-	interactiveCommandsPluginName := appconfig.PluginNameInteractiveCommands
-	sessionPlugins[interactiveCommandsPluginName] = SessionPluginFactory{interactivecommands.NewPlugin}
+	//interactiveCommandsPluginName := appconfig.PluginNameInteractiveCommands
+	//sessionPlugins[interactiveCommandsPluginName] = SessionPluginFactory{interactivecommands.NewPlugin}
 
-	portPluginName := appconfig.PluginNamePort
-	sessionPlugins[portPluginName] = SessionPluginFactory{port.NewPlugin}
+	//portPluginName := appconfig.PluginNamePort
+	//sessionPlugins[portPluginName] = SessionPluginFactory{port.NewPlugin}
 
-	nonInteractiveCommandsPluginName := appconfig.PluginNameNonInteractiveCommands
-	sessionPlugins[nonInteractiveCommandsPluginName] = SessionPluginFactory{noninteractivecommands.NewPlugin}
+	//nonInteractiveCommandsPluginName := appconfig.PluginNameNonInteractiveCommands
+	//sessionPlugins[nonInteractiveCommandsPluginName] = SessionPluginFactory{noninteractivecommands.NewPlugin}
 
 	registeredPlugins = &sessionPlugins
 }
