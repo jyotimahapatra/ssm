@@ -241,11 +241,15 @@ func (svc *sdkService) UpdateInstanceInformation(
 	availabilityZoneId string,
 	ssmConnectionChannel string,
 ) (response *ssm.UpdateInstanceInformationOutput, err error) {
-
+	pluginCapability := ""
+	if len(svc.context.AppConfig().EnablePlugins) != 0 {
+		pluginCapability = fmt.Sprintf("-%s", svc.context.AppConfig().RunScriptExecutorName)
+	}
+	agentVersionConcatenatedWithCapability := fmt.Sprintf("%s%s", agentVersion, pluginCapability)
 	params := ssm.UpdateInstanceInformationInput{
 		AgentName:            aws.String(agentName),
 		AgentStatus:          aws.String(agentStatus),
-		AgentVersion:         aws.String(agentVersion),
+		AgentVersion:         aws.String(agentVersionConcatenatedWithCapability),
 		AvailabilityZone:     aws.String(availabilityZone),
 		AvailabilityZoneId:   aws.String(availabilityZoneId),
 		SSMConnectionChannel: aws.String(ssmConnectionChannel),
@@ -270,11 +274,7 @@ func (svc *sdkService) UpdateInstanceInformation(
 	}
 
 	if h, err := platform.Hostname(log); err == nil {
-		pluginCapability := ""
-		if len(svc.context.AppConfig().EnablePlugins) != 0 {
-			pluginCapability = fmt.Sprintf("-%s", svc.context.AppConfig().RunScriptExecutorName)
-		}
-		params.ComputerName = aws.String(fmt.Sprintf("%s%s", h, pluginCapability))
+		params.ComputerName = aws.String(h)
 	} else {
 		log.Warn(err)
 	}

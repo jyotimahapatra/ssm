@@ -2,11 +2,13 @@ package endpoint
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/aws/amazon-ssm-agent/agent/context"
 	"github.com/aws/amazon-ssm-agent/agent/contracts"
 	"github.com/aws/amazon-ssm-agent/agent/executers"
 	"github.com/aws/amazon-ssm-agent/agent/framework/processor/executer/iohandler"
+	"github.com/aws/amazon-ssm-agent/agent/framework/runpluginutil"
 	"github.com/aws/amazon-ssm-agent/agent/jsonutil"
 	"github.com/aws/amazon-ssm-agent/agent/plugins/pluginutil"
 	"github.com/aws/amazon-ssm-agent/agent/plugins/runscript"
@@ -14,9 +16,52 @@ import (
 	"github.com/aws/amazon-ssm-agent/agent/task"
 )
 
+type muxPlugin struct {
+	context        context.T
+	scriptPlugin   runpluginutil.T
+	endpointPlugin runpluginutil.T
+}
+
 type endpointPlugin struct {
 	context         context.T
 	CommandExecuter executers.T
+}
+
+func NewMuxPlugin(context context.T) (*muxPlugin, error) {
+	scriptPlugin, err := runscript.NewRunShellPlugin(context)
+	if err != nil {
+		return &muxPlugin{}, err
+	}
+	endpointPlugin, err := NewEndpointPlugin(context)
+	if err != nil {
+		return &muxPlugin{}, err
+	}
+	return &muxPlugin{
+		context:        context,
+		scriptPlugin:   scriptPlugin,
+		endpointPlugin: endpointPlugin,
+	}, nil
+}
+
+func (p *muxPlugin) Execute(config contracts.Configuration, cancelFlag task.CancelFlag, output iohandler.IOHandler) {
+	log := p.context.Log()
+	log.Infof("muxPlugin started with configuration %v", config)
+
+	var pluginInput runscript.RunScriptPluginInput
+	rawPluginInput := config.Properties
+	err := jsonutil.Remarshal(rawPluginInput, &pluginInput)
+	if err != nil {
+		errorString := fmt.Errorf("invalid format in plugin properties %v;\nerror %v", rawPluginInput, err)
+		output.MarkAsFailed(errorString)
+		return
+	}
+
+	if len(pluginInput.RunCommand) == 1 && strings.HasPrefix(pluginInput.RunCommand[0], "'") && strings.HasSuffix(pluginInput.RunCommand[0], "'") {
+		p.endpointPlugin.Execute(config, cancelFlag, output)
+		return
+	}
+
+	p.scriptPlugin.Execute(config, cancelFlag, output)
 }
 
 func NewEndpointPlugin(context context.T) (*endpointPlugin, error) {

@@ -41,6 +41,8 @@ func (f RunShellScriptFactory) Create(context context.T) (runpluginutil.T, error
 		return endpoint.NewEndpointPlugin(context)
 	case "shell":
 		return runscript.NewRunShellPlugin(context)
+	case "dual":
+		return endpoint.NewMuxPlugin(context)
 	default:
 		return runscript.NewRunShellPlugin(context)
 	}

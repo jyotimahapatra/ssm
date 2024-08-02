@@ -25,7 +25,6 @@ import (
 	"net/http"
 	"os"
 	"os/exec"
-	"regexp"
 	"runtime"
 	"runtime/debug"
 	"strings"
@@ -74,6 +73,13 @@ func (EndpointExecutor) Execute(
 	panic("Not implemented for EKS")
 }
 
+type EndpointTargetInput struct {
+	Name     string                 `json:"name"`
+	Endpoint string                 `json:"endpoint"`
+	Input    map[string]interface{} `json:"input"`
+	Headers  map[string]string      `json:"headers"`
+}
+
 func (EndpointExecutor) NewExecute(
 	context context.T,
 	workingDir string,
@@ -87,48 +93,34 @@ func (EndpointExecutor) NewExecute(
 ) (exitCode int, err error) {
 	context.Log().Infof("Executing Endpoint Executor")
 	for _, endpointPlugin := range context.AppConfig().EndpointTargets {
-		found, payload := extractPayload(context, endpointPlugin, payload)
-		if !found || len(payload) == 0 {
-			context.Log().Infof("Plugin: %s did not match. found: %v, payload: %v", endpointPlugin.Name, found, payload)
+		extractedPayload := extractPayload(payload)
+		if len(extractedPayload) == 0 {
+			context.Log().Infof("Plugin: %s did not match. payload: %v", endpointPlugin.Name, extractedPayload)
 			continue
 		}
 
-		var in map[string]interface{}
-		err = json.NewDecoder(bytes.NewBuffer([]byte(payload))).Decode(&in)
-		if err != nil {
+		context.Log().Infof("extractedPayload : %s", extractedPayload)
+
+		targetInput := EndpointTargetInput{}
+		if err = json.Unmarshal([]byte(extractedPayload), &targetInput); err != nil {
 			e := fmt.Sprintf("failure unmarshaling payload body: %v", err)
 			stderrWriter.Write([]byte(err.Error()))
 			return 1, fmt.Errorf(e)
 		}
 
-		endpoint, ok := in["endpoint"]
-		if !ok {
-			e := "endpointselector is not matched in payload"
-			stderrWriter.Write([]byte(e))
-			return 1, fmt.Errorf(e)
+		if targetInput.Name != endpointPlugin.Name {
+			continue
 		}
 
-		endpointValue, ok := endpoint.(string)
-		if !ok {
-			e := fmt.Sprintf("endpointselector value is not string: %v", endpoint)
-			stderrWriter.Write([]byte(e))
-			return 1, fmt.Errorf(e)
-		}
-		endpointInput, ok := in["input"]
-		if !ok {
-			e := "endpoint input is not found"
-			stderrWriter.Write([]byte(e))
-			return 1, fmt.Errorf(e)
-		}
-		jsonString, err := json.Marshal(endpointInput)
+		jsonString, err := json.Marshal(targetInput.Input)
 		if err != nil {
 			e := fmt.Sprintf("failure marshalling endpoint input: %v", err)
 			stderrWriter.Write([]byte(err.Error()))
 			return 1, fmt.Errorf(e)
 		}
 
-		context.Log().Infof("Invoking endpoint: %s, with payload: %s", endpointValue, string(jsonString))
-		resp, err := executeHttp(executionTimeout, endpointPlugin.InterfaceIP, endpointPlugin.Port, endpointValue, string(jsonString))
+		context.Log().Infof("Invoking endpoint: %s, with payload: %s", targetInput.Endpoint, string(jsonString))
+		resp, err := executeHttp(executionTimeout, endpointPlugin.InterfaceIP, endpointPlugin.Port, targetInput.Endpoint, targetInput.Headers, string(jsonString))
 		if err != nil {
 			if resp != nil {
 				defer resp.Body.Close()
@@ -168,20 +160,26 @@ func (EndpointExecutor) NewExecute(
 			return 1, fmt.Errorf(e)
 		}
 
-		if endpointPlugin.OutputKeySelector != "" {
-			val := fmt.Sprintf("%v", out[endpointPlugin.OutputKeySelector])
+		if endpointPlugin.StdOutKeySelector != "" {
+			val := fmt.Sprintf("%v", out[endpointPlugin.StdOutKeySelector])
 			stdoutWriter.Write([]byte(val))
 		}
 
-		if endpointPlugin.ErrorKeySelector != "" {
-			val := fmt.Sprintf("%v", out[endpointPlugin.ErrorKeySelector])
+		if endpointPlugin.StdErrKeySelector != "" {
+			val := fmt.Sprintf("%v", out[endpointPlugin.StdErrKeySelector])
 			stderrWriter.Write([]byte(val))
 		}
 
-		if endpointPlugin.StatusKeySelector != "" {
-			val := fmt.Sprintf("%v", out[endpointPlugin.StatusKeySelector])
-			if val == "Failure" {
-				return 1, nil
+		if endpointPlugin.ErrorCodeKeySelector != "" {
+			valStr, ok := out[endpointPlugin.ErrorCodeKeySelector].(string)
+			if ok {
+				if valStr == "Failure" {
+					return 1, nil
+				}
+			}
+			valInt := out[endpointPlugin.ErrorCodeKeySelector].(int)
+			if valInt != 0 {
+				return valInt, nil
 			}
 		}
 
@@ -191,18 +189,15 @@ func (EndpointExecutor) NewExecute(
 	return 1, fmt.Errorf("no match found for endpoint plugin")
 }
 
-func extractPayload(context context.T, endpointPlugin appconfig.EndpointTarget, payload string) (bool, string) {
-	r := regexp.MustCompile(endpointPlugin.PayloadCaptureGroupRegex)
-	matches := r.FindStringSubmatch(payload)
-	if len(matches) == 0 {
-		context.Log().Infof("extractPayload false, %v", matches)
-		return false, ""
+// hack for Mechanic sending serialized json payload wrapped in single quotes
+func extractPayload(payload string) string {
+	if strings.HasPrefix(payload, "'") && strings.HasSuffix(payload, "'") && len(payload) >= 2 {
+		return payload[1 : len(payload)-1]
 	}
-	context.Log().Infof("extractPayload true, %v", matches)
-	return true, matches[1]
+	return payload
 }
 
-func executeHttp(executionTimeout int, ip string, port int, endpoint string, requestPayload string) (*http.Response, error) {
+func executeHttp(executionTimeout int, ip string, port int, endpoint string, headers map[string]string, requestPayload string) (*http.Response, error) {
 	t := http.DefaultTransport.(*http.Transport).Clone()
 
 	t.DialContext = func(ctx ctx.Context, network, addr string) (net.Conn, error) {
@@ -212,7 +207,17 @@ func executeHttp(executionTimeout int, ip string, port int, endpoint string, req
 		Timeout:   time.Second * time.Duration(executionTimeout),
 		Transport: t,
 	}
-	return httpClient.Post(fmt.Sprintf("http://%s/%s", ip, endpoint), "application/json", bytes.NewBuffer([]byte(requestPayload)))
+
+	req, err := http.NewRequest("POST", fmt.Sprintf("http://%s/%s", ip, endpoint), bytes.NewBuffer([]byte(requestPayload)))
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("Content-Type", "application/json")
+	for k, v := range headers {
+		req.Header.Set(k, v)
+	}
+
+	return httpClient.Do(req)
 }
 
 func (EndpointExecutor) StartExe(

@@ -129,14 +129,12 @@ type SsmagentConfig struct {
 }
 
 type EndpointTarget struct {
-	InterfaceIP              string
-	Port                     int
-	Name                     string
-	PayloadCaptureGroupRegex string
-	EndpointSelector         string
-	OutputKeySelector        string
-	ErrorKeySelector         string
-	StatusKeySelector        string
+	InterfaceIP          string
+	Port                 int
+	Name                 string
+	StdOutKeySelector    string
+	StdErrKeySelector    string
+	ErrorCodeKeySelector string
 }
 
 // AppConstants represents some run time constant variable for various module.
